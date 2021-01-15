@@ -17,7 +17,7 @@ class ShuffleNet(nn.Module):
         self.model = shufflenetv2.ShuffleNetV2(stages_repeats, stages_out_channels)
         self.net_name = net_name
         self.progress = progress
-        self.inplanes = 464
+        self.inplanes = 1024
         self.extra = self._make_extra_layers(self.extra_setting[300])
 
     def init_weights(self, pretrained=True):
@@ -35,6 +35,7 @@ class ShuffleNet(nn.Module):
         x = self.model.stage3(x)
         outputs.append(x)
         x = self.model.stage4(x)
+        x = self.model.conv5(x)
         outputs.append(x)
 
         # append extra layers (5x5, 3x3, 2x2, 1x1)
