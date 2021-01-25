@@ -3,7 +3,9 @@ input_size = 300
 model = dict(
     type='SingleStageDetector',
     backbone=dict(
-        type='ShuffleNet'
+        type='ShuffleNet',
+        net_name='shufflenetv2_x1.0',
+        head_type='SSD'
         ),
     neck=None,
     bbox_head=dict(

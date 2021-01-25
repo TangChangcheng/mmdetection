@@ -1,8 +1,9 @@
+#GPU_NUM=1
 custom_imports = dict(
     imports=['mmdet.models.backbones.shufflenet'],
     allow_failed_imports=False)
 _base_ = [
-    '../_base_/models/shufflenet.py', '../_base_/datasets/voc0712.py',
+    '../_base_/models/shufflenet_ssd.py', '../_base_/datasets/voc0712.py',
     '../_base_/default_runtime.py'
 ]
 model = dict(
