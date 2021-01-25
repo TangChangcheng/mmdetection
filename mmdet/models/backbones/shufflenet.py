@@ -11,11 +11,17 @@ class ShuffleNet(nn.Module):
         512: (256, 'S', 512, 128, 'S', 256, 128, 'S', 256, 128, 'S', 256, 128),
     }
 
-    def __init__(self, net_name='shufflenetv2_x1.0', stages_repeats=[4, 8, 4],
-                 stages_out_channels=[24, 116, 232, 464, 1024], progress=True):
+    def __init__(self, net_name, head_type, stages_repeats=[4, 8, 4], progress=True):
         super(ShuffleNet, self).__init__()
+        if net_name == 'shufflenetv2_x0.5':
+            stages_out_channels = [24, 48, 96, 192, 1024]
+        elif net_name == 'shufflenetv2_x1.0':
+            stages_out_channels = [24, 116, 232, 464, 1024]
+        else:
+            raise ValueError('Only support shufflenetv2_x0.5 and shufflenetv2_x1.0 currently')
         self.model = shufflenetv2.ShuffleNetV2(stages_repeats, stages_out_channels)
         self.net_name = net_name
+        self.head_type = head_type
         self.progress = progress
         self.inplanes = 1024
         self.extra = self._make_extra_layers(self.extra_setting[300])
@@ -27,23 +33,34 @@ class ShuffleNet(nn.Module):
         print(ret)
 
     def forward(self, x):
-        # append shufflenetv2_x1.0 output layers (19x19, 10x10)
         outputs = []
-        x = self.model.conv1(x)
-        x = self.model.maxpool(x)
-        x = self.model.stage2(x)
-        x = self.model.stage3(x)
-        outputs.append(x)
-        x = self.model.stage4(x)
-        x = self.model.conv5(x)
-        outputs.append(x)
-
-        # append extra layers (5x5, 3x3, 2x2, 1x1)
-        for i, layer in enumerate(self.extra):
-            x = F.relu(layer(x), inplace=True)
-            if i % 2 == 1:
-                outputs.append(x)
-
+        if self.head_type == 'FPN':
+            x = self.model.conv1(x)
+            x = self.model.maxpool(x)
+            x = self.model.stage2(x)
+            outputs.append(x)
+            x = self.model.stage3(x)
+            outputs.append(x)
+            x = self.model.stage4(x)
+            x = self.model.conv5(x)
+            outputs.append(x)
+        elif self.head_type == 'SSD':
+            # append shufflenetv2_x1.0 output layers (19x19, 10x10)
+            x = self.model.conv1(x)
+            x = self.model.maxpool(x)
+            x = self.model.stage2(x)
+            x = self.model.stage3(x)
+            outputs.append(x)
+            x = self.model.stage4(x)
+            x = self.model.conv5(x)
+            outputs.append(x)
+            # append extra layers (5x5, 3x3, 2x2, 1x1)
+            for i, layer in enumerate(self.extra):
+                x = F.relu(layer(x), inplace=True)
+                if i % 2 == 1:
+                    outputs.append(x)
+        else:
+            raise ValueError('Only support head_type FPN and SSD currently')
         return tuple(outputs)
 
     def _make_extra_layers(self, outplanes):
@@ -67,6 +84,5 @@ class ShuffleNet(nn.Module):
             layers.append(conv)
             self.inplanes = outplanes[i]
             num_layers += 1
-
         return nn.Sequential(*layers)
 
